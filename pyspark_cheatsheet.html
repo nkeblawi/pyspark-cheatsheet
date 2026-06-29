@@ -339,6 +339,12 @@
     .trigger(availableNow=<span class="kw">True</span>)   <span class="cm"># serverless-compatible; processingTime not supported</span>
     .toTable(<span class="str">"bronze.table"</span>)</pre>
     </div>
+
+    <div class="card">
+      <div class="card-title">Batch vs Streaming</div>
+      <div class="row"><code>spark.read.format("delta").table("bronze.table_name")</code><span class="desc">Batch</span></div>
+      <div class="row"><code>spark.readStream.format("delta").table("bronze.table_name")</code><span class="desc">Streaming</span></div>
+    </div>
   </div>
 
   <!-- TRANSFORMS -->
@@ -403,13 +409,13 @@
   <div id="agg" class="section">
     <div class="card">
       <div class="card-title">groupBy aggregations <span class="badge badge-lazy">lazy</span></div>
-<pre><span class="kw">from</span> pyspark.sql.functions <span class="kw">import</span> avg, max, min, sum, count, countDistinct
+<pre><span class="kw">from</span> pyspark.sql.functions <span class="kw">import</span> avg, max, min, sum, count, count_distinct
 
 df.groupBy(<span class="str">"station_id"</span>, <span class="str">"date"</span>).agg(
     avg(<span class="str">"temp"</span>).alias(<span class="str">"avg_temp"</span>),
     max(<span class="str">"temp"</span>).alias(<span class="str">"max_temp"</span>),
     count(<span class="str">"*"</span>).alias(<span class="str">"obs_count"</span>),
-    countDistinct(<span class="str">"wind_dir"</span>).alias(<span class="str">"distinct_dirs"</span>)
+    count_distinct(<span class="str">"wind_dir"</span>).alias(<span class="str">"distinct_dirs"</span>)
 )</pre>
     </div>
     <div class="card">
@@ -419,7 +425,7 @@ df.groupBy(<span class="str">"station_id"</span>, <span class="str">"date"</span
       <div class="row"><code>min("col") / max("col")</code><span class="desc">Min / max</span></div>
       <div class="row"><code>count("*")</code><span class="desc">All rows including nulls</span></div>
       <div class="row"><code>count("col")</code><span class="desc">Non-null rows in column</span></div>
-      <div class="row"><code>countDistinct("col")</code><span class="desc">Unique non-null values</span></div>
+      <div class="row"><code>count_distinct("col")</code><span class="desc">Unique non-null values - preferred snake_case form since PySpark 3.2 (<code>countDistinct</code> still works)</span></div>
       <div class="row"><code>collect_list("col")</code><span class="desc">All values as an array (with duplicates)</span></div>
       <div class="row"><code>collect_set("col")</code><span class="desc">Unique values as an array</span></div>
       <div class="row"><code>first("col", ignorenulls=True)</code><span class="desc">First non-null value in the group</span></div>
@@ -510,7 +516,8 @@ df = spark.read.schema(schema).csv(path)</pre>
       <div class="row"><code>IntegerType() / LongType()</code><span class="desc">32-bit / 64-bit integer</span></div>
       <div class="row"><code>DoubleType() / FloatType()</code><span class="desc">64-bit / 32-bit float</span></div>
       <div class="row"><code>BooleanType()</code><span class="desc">True / False</span></div>
-      <div class="row"><code>TimestampType()</code><span class="desc">Datetime with timezone</span></div>
+      <div class="row"><code>TimestampType()</code><span class="desc">Timestamp stored as UTC internally - use when source data carries timezone info</span></div>
+      <div class="row"><code>TimestampNTZType()</code><span class="desc">Timestamp without timezone (added Spark 3.4) - no UTC conversion; use for local datetime values</span></div>
       <div class="row"><code>DateType()</code><span class="desc">Date only (no time component)</span></div>
       <div class="row"><code>ArrayType(StringType())</code><span class="desc">Array of strings</span></div>
       <div class="row"><code>MapType(StringType(), DoubleType())</code><span class="desc">Key-value map</span></div>
@@ -556,7 +563,7 @@ df = spark.readStream.format(<span class="str">"delta"</span>).table(<span class
 <span class="cm"># Run arbitrary batch logic per micro-batch</span>
 <span class="kw">def</span> upsert_to_silver(batch_df, batch_id):
     batch_df.createOrReplaceTempView(<span class="str">"updates"</span>)
-    batch_df._jdf.sparkSession().sql(<span class="str">"""
+    batch_df.sparkSession.sql(<span class="str">"""
         MERGE INTO silver.weather t
         USING updates s
         ON t.station_id = s.station_id AND t.observation_ts = s.observation_ts
@@ -587,7 +594,7 @@ df.writeStream
       <div class="row"><code>df.repartition(col("date"))</code><span class="desc">Partition by column value</span></div>
       <div class="row"><code>df.coalesce(1)</code><span class="desc">Reduce partitions without a shuffle - only merges, never splits</span></div>
       <div class="row"><code>df.cache()</code><span class="desc">Persist in memory for repeated use - call <code>.unpersist()</code> when done</span></div>
-      <div class="row"><code>df.persist(StorageLevel.DISK_ONLY)</code><span class="desc">Persist to disk when DataFrame is too large for memory</span></div>
+      <div class="row"><code>df.persist(StorageLevel.DISK_ONLY)</code><span class="desc">Persist to disk when DataFrame is too large for memory - import via <code>from pyspark import StorageLevel</code></span></div>
     </div>
     <div class="card">
       <div class="card-title">Broadcast join <span class="badge badge-caution">avoids shuffle</span></div>
@@ -667,7 +674,7 @@ df_large.join(broadcast(df_small), on=<span class="str">"station_id"</span>)
     <div class="card">
       <div class="card-title">Persistence</div>
       <div class="row"><code>rdd.cache()</code><span class="desc">Persist in memory (MEMORY_ONLY) - shorthand for persist()</span></div>
-      <div class="row"><code>rdd.persist(StorageLevel.MEMORY_AND_DISK)</code><span class="desc">Spill to disk if memory runs out</span></div>
+      <div class="row"><code>rdd.persist(StorageLevel.MEMORY_AND_DISK)</code><span class="desc">Spill to disk if memory runs out - import via <code>from pyspark import StorageLevel</code></span></div>
       <div class="row"><code>rdd.unpersist()</code><span class="desc">Release cached data</span></div>
       <div class="row"><code>rdd.getNumPartitions()</code><span class="desc">Check how many partitions the RDD has</span></div>
     </div>
