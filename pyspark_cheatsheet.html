@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PySpark Cheatsheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --surface-2: #f0efe9;
+    --border: #dddbd4;
+    --border-strong: #c5c3bb;
+    --text: #1a1917;
+    --text-sec: #5a5852;
+    --text-muted: #8f8d86;
+    --accent: #2563eb;
+    --accent-bg: #eff6ff;
+    --accent-border: #bfdbfe;
+    --success-bg: #f0fdf4;
+    --success-text: #166534;
+    --warn-bg: #fffbeb;
+    --warn-text: #92400e;
+    --danger-bg: #fef2f2;
+    --danger-text: #991b1b;
+    --tab-active-bg: #1a1917;
+    --tab-active-text: #ffffff;
+    --code-bg: #f0efe9;
+    --code-text: #1d4ed8;
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  body {
+    font-family: var(--font-ui);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+  }
+  .header h1 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .header p {
+    font-size: 0.95rem;
+    color: var(--text-sec);
+    margin-top: 4px;
+  }
+
+  /* Page body: sidebar + content side by side */
+  .page-body {
+    display: flex;
+    flex: 1;
+    align-items: flex-start;
+  }
+
+  /* Sidebar tab nav */
+  .tab-bar {
+    width: 180px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.25rem 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    font-family: var(--font-ui);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-sec);
+    background: transparent;
+    border: none;
+    border-left: 3px solid transparent;
+    padding: 0.65rem 1.25rem;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: left;
+    transition: color .15s, background .15s, border-color .15s;
+  }
+  .tab-btn:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+  .tab-btn.active {
+    color: var(--accent);
+    border-left-color: var(--accent);
+    background: var(--accent-bg);
+    font-weight: 600;
+  }
+
+  /* Content area */
+  .content {
+    flex: 1;
+    max-width: 900px;
+    padding: 2rem 2.5rem;
+    min-width: 0;
+  }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1rem;
+  }
+  .card-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    margin-bottom: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Rows */
+  .row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--surface-2);
+    align-items: start;
+  }
+  .row:last-child { border-bottom: none; padding-bottom: 0; }
+  .row:first-of-type { padding-top: 0; }
+
+  .desc {
+    font-size: 0.925rem;
+    color: var(--text-sec);
+    padding-top: 3px;
+    line-height: 1.5;
+  }
+
+  /* Inline code pill */
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.825rem;
+    background: var(--code-bg);
+    color: var(--code-text);
+    padding: 3px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  /* Code block */
+  pre {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    margin-top: 0.75rem;
+    overflow-x: auto;
+    line-height: 1.75;
+  }
+  pre .kw  { color: #89b4fa; }
+  pre .str { color: #a6e3a1; }
+  pre .cm  { color: #6c7086; font-style: italic; }
+  pre .fn  { color: #cba6f7; }
+
+  /* Badges */
+  .badge {
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-lazy    { background: var(--warn-bg);    color: var(--warn-text); }
+  .badge-action  { background: var(--success-bg); color: var(--success-text); }
+  .badge-caution { background: var(--danger-bg);  color: var(--danger-text); }
+
+  /* Tip box */
+  .tip {
+    font-size: 0.9rem;
+    color: var(--text-sec);
+    border-left: 3px solid var(--accent-border);
+    background: var(--accent-bg);
+    padding: 0.75rem 1rem;
+    border-radius: 0 6px 6px 0;
+    margin-top: 1rem;
+    line-height: 1.55;
+  }
+  .tip code { background: #dbeafe; color: #1d4ed8; }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0 1rem; }
+
+  /* Tab dropdown — mobile */
+  .tab-select-wrap {
+    display: none;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+  }
+  .tab-select-wrap select {
+    font-family: var(--font-ui);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border-strong);
+    border-radius: 7px;
+    padding: 0.55rem 0.9rem;
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238f8d86' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.9rem center;
+    padding-right: 2.5rem;
+  }
+
+  @media (max-width: 700px) {
+    .tab-bar { display: none; }
+    .tab-select-wrap { display: block; }
+    .page-body { flex-direction: column; }
+    .content { padding: 1.25rem; }
+  }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>PySpark</h1>
+  <p>Quick Reference Guide</p>
+</div>
+
+<div class="tab-select-wrap">
+  <select onchange="showById(this.value)">
+    <option value="read-write">Read & Write</option>
+    <option value="transform">Transforms</option>
+    <option value="actions">Actions</option>
+    <option value="agg">Aggregations</option>
+    <option value="joins">Joins</option>
+    <option value="window">Window funct</option>
+    <option value="schema">Schema & Types</option>
+    <option value="delta">Delta Pps</option>
+    <option value="streaming">Streaming</option>
+    <option value="rdd">RDD</option>
+    <option value="perf">Perf Tips</option>
+  </select>
+</div>
+
+<div class="page-body">
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('read-write', this)">Read & Write</button>
+  <button class="tab-btn" onclick="show('transform', this)">Transforms</button>
+  <button class="tab-btn" onclick="show('actions', this)">Actions</button>
+  <button class="tab-btn" onclick="show('agg', this)">Aggregations</button>
+  <button class="tab-btn" onclick="show('joins', this)">Joins</button>
+  <button class="tab-btn" onclick="show('window', this)">Window funct</button>
+  <button class="tab-btn" onclick="show('schema', this)">Schema & Types</button>
+  <button class="tab-btn" onclick="show('delta', this)">Delta Pps</button>
+  <button class="tab-btn" onclick="show('streaming', this)">Streaming</button>
+  <button class="tab-btn" onclick="show('rdd', this)">RDD</button>
+  <button class="tab-btn" onclick="show('perf', this)">Perf Tips</button>
+</div>
+
+<div class="content">
+
+  <!-- READ / WRITE -->
+  <div id="read-write" class="section active">
+    <div class="card">
+      <div class="card-title">Reading data</div>
+      <div class="row"><code>spark.read.format("delta").load(path)</code><span class="desc">Read a Delta table from a path</span></div>
+      <div class="row"><code>spark.table("catalog.schema.table")</code><span class="desc">Read a registered table - preferred in Unity Catalog</span></div>
+      <div class="row"><code>spark.read.csv(path, header=True, inferSchema=True)</code><span class="desc">CSV - <code>inferSchema</code> is slow on large files; define schema manually in prod</span></div>
+      <div class="row"><code>spark.read.json(path)</code><span class="desc">JSON - for multiline: <code>.option("multiLine", True)</code></span></div>
+      <div class="row"><code>spark.read.parquet(path)</code><span class="desc">Parquet - schema is embedded in the file, no inference needed</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Writing data</div>
+      <div class="row"><code>.write.format("delta").mode("overwrite").save(path)</code><span class="desc">Overwrite a Delta path</span></div>
+      <div class="row"><code>.write.mode("append").saveAsTable("name")</code><span class="desc">Append to a registered table</span></div>
+      <div class="row"><code>.write.partitionBy("date").format("delta").save(path)</code><span class="desc">Partition on write - good for time-based query pruning</span></div>
+      <hr class="divider">
+      <div class="card-title" style="margin-bottom:.75rem">Write modes</div>
+      <div class="row"><code>overwrite</code><span class="desc">Replace all existing data</span></div>
+      <div class="row"><code>append</code><span class="desc">Add rows without touching existing data</span></div>
+      <div class="row"><code>ignore</code><span class="desc">No-op if data already exists</span></div>
+      <div class="row"><code>error</code><span class="desc">Fail if data already exists (default)</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Auto Loader (cloud files)</div>
+<pre><span class="kw">df</span> = (spark.readStream
+    .format(<span class="str">"cloudFiles"</span>)
+    .option(<span class="str">"cloudFiles.format"</span>, <span class="str">"csv"</span>)
+    .option(<span class="str">"cloudFiles.schemaLocation"</span>, schema_path)
+    .load(source_path)
+)
+
+<span class="kw">df</span>.writeStream
+    .format(<span class="str">"delta"</span>)
+    .option(<span class="str">"checkpointLocation"</span>, checkpoint_path)
+    .trigger(availableNow=<span class="kw">True</span>)   <span class="cm"># serverless-compatible; processingTime not supported</span>
+    .toTable(<span class="str">"bronze.table"</span>)</pre>
+    </div>
+  </div>
+
+  <!-- TRANSFORMS -->
+  <div id="transform" class="section">
+    <div class="card">
+      <div class="card-title">Column selection &amp; renaming <span class="badge badge-lazy">lazy</span></div>
+      <div class="row"><code>df.select("col1", "col2")</code><span class="desc">Select columns by name</span></div>
+      <div class="row"><code>df.select(col("price") * 1.1)</code><span class="desc">Expression in select - requires <code>col()</code> for operations</span></div>
+      <div class="row"><code>df.withColumn("new", col("a") + col("b"))</code><span class="desc">Add or replace a column</span></div>
+      <div class="row"><code>df.withColumnRenamed("old", "new")</code><span class="desc">Rename a column</span></div>
+      <div class="row"><code>df.drop("col1", "col2")</code><span class="desc">Remove columns</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Filtering <span class="badge badge-lazy">lazy</span></div>
+      <div class="row"><code>df.filter(col("age") &gt; 18)</code><span class="desc">Filter rows - <code>.where()</code> is an alias</span></div>
+      <div class="row"><code>df.filter((col("a") &gt; 1) &amp; (col("b") == "x"))</code><span class="desc">AND - use <code>&amp;</code> not <code>and</code>; wrap each condition in parens</span></div>
+      <div class="row"><code>df.filter(col("name").isNull())</code><span class="desc">Null check</span></div>
+      <div class="row"><code>df.filter(col("status").isin("A", "B"))</code><span class="desc">In-list filter</span></div>
+      <div class="row"><code>df.dropDuplicates(["station_id", "ts"])</code><span class="desc">Deduplicate on key columns</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Type casting &amp; null handling <span class="badge badge-lazy">lazy</span></div>
+      <div class="row"><code>col("temp").cast("double")</code><span class="desc">Cast using string shorthand</span></div>
+      <div class="row"><code>col("temp").cast(DoubleType())</code><span class="desc">Cast using type class (import from <code>pyspark.sql.types</code>)</span></div>
+      <div class="row"><code>df.fillna({"temp": 0.0, "status": "unknown"})</code><span class="desc">Fill nulls per column</span></div>
+      <div class="row"><code>df.na.drop(subset=["col1", "col2"])</code><span class="desc">Drop rows where any specified column is null</span></div>
+      <div class="row"><code>coalesce(col("a"), col("b"), lit(0))</code><span class="desc">First non-null value across columns</span></div>
+      <div class="row"><code>when(col("x") &gt; 0, "pos").otherwise("neg")</code><span class="desc">Conditional column - chains with additional <code>.when()</code></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">String &amp; date functions</div>
+      <div class="row"><code>to_timestamp(col("ts_str"), "yyyy-MM-dd HH:mm")</code><span class="desc">Parse string to timestamp</span></div>
+      <div class="row"><code>date_trunc("hour", col("ts"))</code><span class="desc">Truncate to hour / day / month</span></div>
+      <div class="row"><code>col("ts").cast("date")</code><span class="desc">Timestamp → date only</span></div>
+      <div class="row"><code>trim(col("name"))</code><span class="desc">Strip whitespace</span></div>
+      <div class="row"><code>lower(col("name"))</code><span class="desc">Lowercase</span></div>
+      <div class="row"><code>regexp_replace(col("s"), r"\s+", "_")</code><span class="desc">Regex replace</span></div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div id="actions" class="section">
+    <div class="card">
+      <div class="card-title">Actions - these trigger execution <span class="badge badge-action">action</span></div>
+      <div class="row"><code>df.show(20, truncate=False)</code><span class="desc">Print top N rows to stdout</span></div>
+      <div class="row"><code>df.count()</code><span class="desc">Row count - triggers a full scan</span></div>
+      <div class="row"><code>df.collect()</code><span class="desc">Return all rows as a Python list - dangerous on large DataFrames</span></div>
+      <div class="row"><code>df.first()</code><span class="desc">Return first row as a Row object</span></div>
+      <div class="row"><code>df.take(5)</code><span class="desc">Return first N rows as a list</span></div>
+      <div class="row"><code>df.write...</code><span class="desc">Any write call is an action</span></div>
+      <div class="row"><code>df.printSchema()</code><span class="desc">Print schema - does not trigger a scan</span></div>
+      <div class="row"><code>df.dtypes</code><span class="desc">List of (column, dtype) tuples</span></div>
+      <div class="row"><code>df.describe("col").show()</code><span class="desc">Summary statistics - count, mean, stddev, min, max</span></div>
+    </div>
+    <div class="tip">Everything above <code>.write()</code> or <code>.show()</code> in your chain is a transformation - nothing executes until one of these fires.</div>
+  </div>
+
+  <!-- AGGREGATIONS -->
+  <div id="agg" class="section">
+    <div class="card">
+      <div class="card-title">groupBy aggregations <span class="badge badge-lazy">lazy</span></div>
+<pre><span class="kw">from</span> pyspark.sql.functions <span class="kw">import</span> avg, max, min, sum, count, countDistinct
+
+df.groupBy(<span class="str">"station_id"</span>, <span class="str">"date"</span>).agg(
+    avg(<span class="str">"temp"</span>).alias(<span class="str">"avg_temp"</span>),
+    max(<span class="str">"temp"</span>).alias(<span class="str">"max_temp"</span>),
+    count(<span class="str">"*"</span>).alias(<span class="str">"obs_count"</span>),
+    countDistinct(<span class="str">"wind_dir"</span>).alias(<span class="str">"distinct_dirs"</span>)
+)</pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Common agg functions</div>
+      <div class="row"><code>avg("col")</code><span class="desc">Mean</span></div>
+      <div class="row"><code>sum("col")</code><span class="desc">Sum</span></div>
+      <div class="row"><code>min("col") / max("col")</code><span class="desc">Min / max</span></div>
+      <div class="row"><code>count("*")</code><span class="desc">All rows including nulls</span></div>
+      <div class="row"><code>count("col")</code><span class="desc">Non-null rows in column</span></div>
+      <div class="row"><code>countDistinct("col")</code><span class="desc">Unique non-null values</span></div>
+      <div class="row"><code>collect_list("col")</code><span class="desc">All values as an array (with duplicates)</span></div>
+      <div class="row"><code>collect_set("col")</code><span class="desc">Unique values as an array</span></div>
+      <div class="row"><code>first("col", ignorenulls=True)</code><span class="desc">First non-null value in the group</span></div>
+    </div>
+  </div>
+
+  <!-- JOINS -->
+  <div id="joins" class="section">
+    <div class="card">
+      <div class="card-title">Join syntax <span class="badge badge-lazy">lazy</span></div>
+<pre><span class="cm"># Standard join</span>
+df1.join(df2, on=<span class="str">"station_id"</span>, how=<span class="str">"inner"</span>)
+
+<span class="cm"># Multi-column key</span>
+df1.join(df2, on=[<span class="str">"station_id"</span>, <span class="str">"date"</span>], how=<span class="str">"left"</span>)
+
+<span class="cm"># Expression key - avoids duplicate column names in output</span>
+df1.join(df2, df1.id == df2.station_id, <span class="str">"inner"</span>)</pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Join types</div>
+      <div class="row"><code>inner</code><span class="desc">Only matching rows from both sides</span></div>
+      <div class="row"><code>left / left_outer</code><span class="desc">All left rows; nulls where no right match</span></div>
+      <div class="row"><code>right / right_outer</code><span class="desc">All right rows; nulls where no left match</span></div>
+      <div class="row"><code>full / full_outer</code><span class="desc">All rows from both sides</span></div>
+      <div class="row"><code>left_semi</code><span class="desc">Left rows that have a match - like a filtered inner; no right columns in output</span></div>
+      <div class="row"><code>left_anti</code><span class="desc">Left rows that have no match - set difference</span></div>
+      <div class="row"><code>cross</code><span class="desc">Cartesian product - use with extreme caution</span></div>
+    </div>
+    <div class="tip">Joins on large tables cause shuffles. If one table is small (&lt;200MB), Spark broadcasts it automatically. Force it with <code>broadcast(df_small)</code> imported from <code>pyspark.sql.functions</code>.</div>
+  </div>
+
+  <!-- WINDOW -->
+  <div id="window" class="section">
+    <div class="card">
+      <div class="card-title">Window function setup</div>
+<pre><span class="kw">from</span> pyspark.sql.window <span class="kw">import</span> Window
+<span class="kw">from</span> pyspark.sql.functions <span class="kw">import</span> row_number, rank, dense_rank, lag, lead, avg
+
+w = (Window
+    .partitionBy(<span class="str">"station_id"</span>)
+    .orderBy(<span class="str">"observation_ts"</span>)
+)</pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Common window functions</div>
+      <div class="row"><code>row_number().over(w)</code><span class="desc">Sequential number within partition - no ties</span></div>
+      <div class="row"><code>rank().over(w)</code><span class="desc">Rank with gaps on ties (1, 1, 3…)</span></div>
+      <div class="row"><code>dense_rank().over(w)</code><span class="desc">Rank without gaps on ties (1, 1, 2…)</span></div>
+      <div class="row"><code>lag("col", 1).over(w)</code><span class="desc">Previous row's value</span></div>
+      <div class="row"><code>lead("col", 1).over(w)</code><span class="desc">Next row's value</span></div>
+      <div class="row"><code>avg("temp").over(w)</code><span class="desc">Running average over the partition + ordering</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Silver-layer dedup pattern - keep latest per key</div>
+<pre>w = Window.partitionBy(<span class="str">"station_id"</span>, <span class="str">"observation_ts"</span>).orderBy(col(<span class="str">"ingested_at"</span>).desc())
+
+(df
+    .withColumn(<span class="str">"rn"</span>, row_number().over(w))
+    .filter(col(<span class="str">"rn"</span>) == 1)
+    .drop(<span class="str">"rn"</span>)
+)</pre>
+      <div class="tip" style="margin-top:.75rem">Partition on the natural key, order by ingestion time descending, keep row 1. Lighter than MERGE when the source never reissues past records.</div>
+    </div>
+  </div>
+
+  <!-- SCHEMA -->
+  <div id="schema" class="section">
+    <div class="card">
+      <div class="card-title">Defining a schema manually</div>
+<pre><span class="kw">from</span> pyspark.sql.types <span class="kw">import</span> (
+    StructType, StructField,
+    StringType, DoubleType, TimestampType, IntegerType, BooleanType
+)
+
+schema = StructType([
+    StructField(<span class="str">"station_id"</span>,     StringType(),    nullable=<span class="kw">False</span>),
+    StructField(<span class="str">"observation_ts"</span>, TimestampType(), nullable=<span class="kw">False</span>),
+    StructField(<span class="str">"temp_c"</span>,         DoubleType(),    nullable=<span class="kw">True</span>),
+    StructField(<span class="str">"wind_mph"</span>,       DoubleType(),    nullable=<span class="kw">True</span>),
+])
+
+df = spark.read.schema(schema).csv(path)</pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Common types</div>
+      <div class="row"><code>StringType()</code><span class="desc">String</span></div>
+      <div class="row"><code>IntegerType() / LongType()</code><span class="desc">32-bit / 64-bit integer</span></div>
+      <div class="row"><code>DoubleType() / FloatType()</code><span class="desc">64-bit / 32-bit float</span></div>
+      <div class="row"><code>BooleanType()</code><span class="desc">True / False</span></div>
+      <div class="row"><code>TimestampType()</code><span class="desc">Datetime with timezone</span></div>
+      <div class="row"><code>DateType()</code><span class="desc">Date only (no time component)</span></div>
+      <div class="row"><code>ArrayType(StringType())</code><span class="desc">Array of strings</span></div>
+      <div class="row"><code>MapType(StringType(), DoubleType())</code><span class="desc">Key-value map</span></div>
+    </div>
+  </div>
+
+  <!-- DELTA OPS -->
+  <div id="delta" class="section">
+    <div class="card">
+      <div class="card-title">MERGE (upsert) - foreachBatch Silver pattern</div>
+<pre><span class="kw">from</span> delta.tables <span class="kw">import</span> DeltaTable
+
+target = DeltaTable.forName(spark, <span class="str">"silver.weather"</span>)
+
+target.alias(<span class="str">"t"</span>).merge(
+    source=df.alias(<span class="str">"s"</span>),
+    condition=<span class="str">"t.station_id = s.station_id AND t.observation_ts = s.observation_ts"</span>
+).whenMatchedUpdateAll(
+).whenNotMatchedInsertAll(
+).execute()</pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Time travel</div>
+      <div class="row"><code>.option("versionAsOf", 3)</code><span class="desc">Read table at version 3</span></div>
+      <div class="row"><code>.option("timestampAsOf", "2024-01-01")</code><span class="desc">Read table at a specific timestamp</span></div>
+      <div class="row"><code>DESCRIBE HISTORY table_name</code><span class="desc">SQL - show full version history</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Maintenance</div>
+      <div class="row"><code>OPTIMIZE table_name ZORDER BY (station_id)</code><span class="desc">Compact small files + Z-order for query pruning on that column</span></div>
+      <div class="row"><code>VACUUM table_name RETAIN 168 HOURS</code><span class="desc">Delete old file versions (default is 7 days)</span></div>
+      <div class="row"><code>RESTORE TABLE t TO VERSION AS OF 5</code><span class="desc">Roll back to a prior version</span></div>
+    </div>
+  </div>
+
+  <!-- STREAMING -->
+  <div id="streaming" class="section">
+    <div class="card">
+      <div class="card-title">Structured streaming + foreachBatch</div>
+<pre><span class="cm"># Read a Delta table as a stream</span>
+df = spark.readStream.format(<span class="str">"delta"</span>).table(<span class="str">"bronze.weather"</span>)
+
+<span class="cm"># Run arbitrary batch logic per micro-batch</span>
+<span class="kw">def</span> upsert_to_silver(batch_df, batch_id):
+    batch_df.createOrReplaceTempView(<span class="str">"updates"</span>)
+    batch_df._jdf.sparkSession().sql(<span class="str">"""
+        MERGE INTO silver.weather t
+        USING updates s
+        ON t.station_id = s.station_id AND t.observation_ts = s.observation_ts
+        WHEN MATCHED THEN UPDATE SET *
+        WHEN NOT MATCHED THEN INSERT *
+    """</span>)
+
+df.writeStream
+    .foreachBatch(upsert_to_silver)
+    .option(<span class="str">"checkpointLocation"</span>, checkpoint_path)
+    .trigger(availableNow=<span class="kw">True</span>)
+    .start()</pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Trigger modes</div>
+      <div class="row"><code>trigger(availableNow=True)</code><span class="desc">Process all backlog then stop - serverless compatible</span></div>
+      <div class="row"><code>trigger(once=True)</code><span class="desc">Deprecated - use <code>availableNow</code> instead</span></div>
+      <div class="row"><code>trigger(processingTime="30 seconds")</code><span class="desc">Continuous micro-batch - not supported on serverless</span></div>
+    </div>
+    <div class="tip">Checkpoints are cumulative. File counts reflect all files ever seen by the stream, not current volume contents. Resetting requires deleting the checkpoint directory or pointing to a new path.</div>
+  </div>
+
+  <!-- PERF -->
+  <div id="perf" class="section">
+    <div class="card">
+      <div class="card-title">Partitioning &amp; caching</div>
+      <div class="row"><code>df.repartition(8)</code><span class="desc">Shuffle into N partitions - use before a wide join on an unpartitioned table</span></div>
+      <div class="row"><code>df.repartition(col("date"))</code><span class="desc">Partition by column value</span></div>
+      <div class="row"><code>df.coalesce(1)</code><span class="desc">Reduce partitions without a shuffle - only merges, never splits</span></div>
+      <div class="row"><code>df.cache()</code><span class="desc">Persist in memory for repeated use - call <code>.unpersist()</code> when done</span></div>
+      <div class="row"><code>df.persist(StorageLevel.DISK_ONLY)</code><span class="desc">Persist to disk when DataFrame is too large for memory</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Broadcast join <span class="badge badge-caution">avoids shuffle</span></div>
+<pre><span class="kw">from</span> pyspark.sql.functions <span class="kw">import</span> broadcast
+
+df_large.join(broadcast(df_small), on=<span class="str">"station_id"</span>)
+<span class="cm"># Sends the small DF to every executor - eliminates shuffle entirely</span>
+<span class="cm"># Rule of thumb: use when one side is &lt;200MB</span></pre>
+    </div>
+    <div class="card">
+      <div class="card-title">Spark Performance Concepts</div>
+      <div class="row"><code>Shuffle</code><span class="desc">Data redistribution across partitions - triggered by joins, groupBy, repartition. The most expensive Spark operation.</span></div>
+      <div class="row"><code>Catalyst optimizer</code><span class="desc">Rewrites your query plan for efficiency before execution. Primary reason to prefer the DataFrame API over the RDD API.</span></div>
+      <div class="row"><code>Photon</code><span class="desc">Databricks native execution engine - replaces JVM path for SQL and DataFrame ops. Same API, faster execution. Databricks-only, not open-source.</span></div>
+      <div class="row"><code>Predicate pushdown</code><span class="desc">Catalyst pushes <code>.filter()</code> down to the data source so fewer rows are scanned. Automatic with Delta and Parquet.</span></div>
+      <div class="row"><code>AQE</code><span class="desc">Adaptive Query Execution - Spark 3+ re-optimizes the plan at runtime based on actual partition sizes observed during execution.</span></div>
+    </div>
+  </div>
+
+  <!-- RDD -->
+  <div id="rdd" class="section">
+    <div class="card">
+      <div class="card-title">What RDDs are and when to use them</div>
+      <div class="row"><code>RDD</code><span class="desc">Resilient Distributed Dataset - the low-level abstraction under DataFrames. Untyped, no schema, no Catalyst optimization. Use only when DataFrames can't express the logic.</span></div>
+      <div class="row"><code>DataFrame vs RDD</code><span class="desc">DataFrames go through Catalyst and Tungsten - faster in almost every case. RDDs are useful for unstructured data, custom partitioning logic, or operations with no DataFrame equivalent.</span></div>
+      <div class="row"><code>sc</code><span class="desc">SparkContext - the entry point for RDD operations. In Databricks: <code>sc = spark.sparkContext</code></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Creating RDDs</div>
+      <div class="row"><code>sc.parallelize([1, 2, 3, 4])</code><span class="desc">Create an RDD from a local Python collection</span></div>
+      <div class="row"><code>sc.parallelize([1, 2, 3], numSlices=4)</code><span class="desc">Specify number of partitions explicitly</span></div>
+      <div class="row"><code>sc.textFile("s3://bucket/file.txt")</code><span class="desc">Read a text file - one string per line</span></div>
+      <div class="row"><code>df.rdd</code><span class="desc">Convert a DataFrame to an RDD of Row objects</span></div>
+      <div class="row"><code>spark.createDataFrame(rdd, schema)</code><span class="desc">Convert an RDD back to a DataFrame</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Transformations <span class="badge badge-lazy">lazy</span></div>
+      <div class="row"><code>rdd.map(lambda x: x * 2)</code><span class="desc">Apply a function to every element - returns one output per input</span></div>
+      <div class="row"><code>rdd.flatMap(lambda x: x.split(" "))</code><span class="desc">Like map but flattens the result - one input can produce many outputs</span></div>
+      <div class="row"><code>rdd.filter(lambda x: x > 0)</code><span class="desc">Keep elements that match the predicate</span></div>
+      <div class="row"><code>rdd.distinct()</code><span class="desc">Remove duplicates - triggers a shuffle</span></div>
+      <div class="row"><code>rdd.mapPartitions(func)</code><span class="desc">Apply a function to each partition as an iterator - more efficient than map for setup-heavy ops</span></div>
+      <div class="row"><code>rdd.sortBy(lambda x: x[1], ascending=False)</code><span class="desc">Sort by a key function</span></div>
+      <div class="row"><code>rdd.union(rdd2)</code><span class="desc">Combine two RDDs - no deduplication</span></div>
+      <div class="row"><code>rdd.repartition(8)</code><span class="desc">Shuffle into N partitions</span></div>
+      <div class="row"><code>rdd.coalesce(2)</code><span class="desc">Reduce partitions without a full shuffle</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Key-value (PairRDD) transformations <span class="badge badge-lazy">lazy</span></div>
+      <div class="row"><code>rdd.map(lambda x: (x[0], x[1]))</code><span class="desc">Create a PairRDD - any RDD of (key, value) tuples</span></div>
+      <div class="row"><code>rdd.reduceByKey(lambda a, b: a + b)</code><span class="desc">Aggregate values per key - more efficient than groupByKey because it combines locally before shuffling</span></div>
+      <div class="row"><code>rdd.groupByKey()</code><span class="desc">Group all values per key into an iterable - avoid on large data, use reduceByKey instead</span></div>
+      <div class="row"><code>rdd.mapValues(lambda v: v * 2)</code><span class="desc">Apply a function to values only, preserving keys</span></div>
+      <div class="row"><code>rdd.sortByKey(ascending=True)</code><span class="desc">Sort by key</span></div>
+      <div class="row"><code>rdd.join(rdd2)</code><span class="desc">Inner join on key - results in (key, (v1, v2))</span></div>
+      <div class="row"><code>rdd.leftOuterJoin(rdd2)</code><span class="desc">Left join - missing right values are None</span></div>
+      <div class="row"><code>rdd.keys() / rdd.values()</code><span class="desc">Extract keys or values as a new RDD</span></div>
+      <div class="row"><code>rdd.countByKey()</code><span class="desc">Count occurrences per key - returns a Python dict <span class="badge badge-action">action</span></span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Actions <span class="badge badge-action">action</span></div>
+      <div class="row"><code>rdd.collect()</code><span class="desc">Return all elements as a Python list - dangerous on large RDDs</span></div>
+      <div class="row"><code>rdd.count()</code><span class="desc">Number of elements</span></div>
+      <div class="row"><code>rdd.first()</code><span class="desc">Return the first element</span></div>
+      <div class="row"><code>rdd.take(5)</code><span class="desc">Return first N elements as a list</span></div>
+      <div class="row"><code>rdd.top(5)</code><span class="desc">Return top N elements (sorted descending)</span></div>
+      <div class="row"><code>rdd.reduce(lambda a, b: a + b)</code><span class="desc">Aggregate all elements using a commutative function</span></div>
+      <div class="row"><code>rdd.fold(0, lambda a, b: a + b)</code><span class="desc">Like reduce but with a zero value for each partition</span></div>
+      <div class="row"><code>rdd.foreach(print)</code><span class="desc">Apply a function to each element with no return value</span></div>
+      <div class="row"><code>rdd.saveAsTextFile(path)</code><span class="desc">Write each element as a line to a text file</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Persistence</div>
+      <div class="row"><code>rdd.cache()</code><span class="desc">Persist in memory (MEMORY_ONLY) - shorthand for persist()</span></div>
+      <div class="row"><code>rdd.persist(StorageLevel.MEMORY_AND_DISK)</code><span class="desc">Spill to disk if memory runs out</span></div>
+      <div class="row"><code>rdd.unpersist()</code><span class="desc">Release cached data</span></div>
+      <div class="row"><code>rdd.getNumPartitions()</code><span class="desc">Check how many partitions the RDD has</span></div>
+    </div>
+
+    <div class="tip">RDDs lack Catalyst optimization, are lower-level than DataFrames, and that <code>reduceByKey</code> is preferred over <code>groupByKey</code> because it aggregates locally before shuffling.</div>
+  </div>
+
+</div><!-- /.content -->
+</div><!-- /.page-body -->
+
+<script>
+function show(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  const sel = document.querySelector('.tab-select-wrap select');
+  if (sel) sel.value = id;  // keep dropdown in sync
+}
+function showById(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>
